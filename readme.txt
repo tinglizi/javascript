@@ -1,4 +1,10 @@
-Git is a distributed version control system.
-Git is free software distributed under the GPL.
-Git has a mutable index called stage.
-Git tracks changes.
+## 数组去重
+function distinct (arr) {
+  let result = [];
+  for (var i = 0; i < arr.length; i++){
+    if (result.indexOf(arr[i]) == -1){
+      result.push(arr[i]);
+    }
+  }
+  return result;
+}
