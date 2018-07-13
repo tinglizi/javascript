@@ -1,10 +1,1 @@
-## 数组去重
-function distinct (arr) {
-  let result = [];
-  for (var i = 0; i < arr.length; i++){
-    if (result.indexOf(arr[i]) == -1){
-      result.push(arr[i]);
-    }
-  }
-  return result;
-}
+## 简单记录一些日常遇到的或练习的js
