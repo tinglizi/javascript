@@ -68,13 +68,13 @@ var Zepto = function () {
         if (!dom) {
             // 如果有replace方法说明html 为字符串，把原来的字符串替换成合法的字符串
             if (html.replace) html = html.replace(tagExpanderRE, '<$1></$2>')
-            // 如果name 严格等于undefined，则将匹配的标签名给那么
+            // 如果name 严格等于undefined，则将匹配的标签名给name
             if (name === undefined) name = fragmentRE.test(html) && RegExp.$1
             // 判断name是否是containers的一个属性，如果不是则将‘*’赋给name
             if (!(name in containers)) name = '*'
-            // 创建一个div
+            // 创建一个标签（div 或其他标签）
             container = containers[name];
-            // 设置div的HTML 为 获取的html
+            // 设置标签的html为获取的html
             container.innerHTML = html;
             // 将container里面的所有元素删除，并返回删除的元素
             dom = $.each(slice.call(container.childNodes), function () {
