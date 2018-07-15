@@ -1,101 +1,188 @@
-var Zepto = function () {
-    var zepto = {},
-        emptyArray = [],
-        slice = emptyArray.slice,
-        // 正则判断是否以0个或多个空格开头的一个或多个字符或！，不包括>,最后以>结尾
-        fragmentRE = /^\s*<(\w+|!)[^>]*>/ ,
-        // 匹配单标签
-        singleTagRE = /^<(\w+)\s*\/?>(?:<\/1>|)$/ ,
-        // 匹配以<开头过滤掉area等一些字符，一个或多个字符不包括零个或多个>,以/>结尾
-        // 修复html,
-        tagExpanderRE = /^<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
+var Zepto = (function () {
+    var $,
+    emptyArray = [],
+    filter = emptyArray.filter,
+    slice = emptyArray.slice,
+    // 开头匹配0或多个空白字符，下个字符是<的之后有一个或多个的字母、数字、下划线或是！，不包含>的任意字符之后是>结尾，
+    // 这个正则只能匹配出创建元素的情况，不足以验证其正确性，之后有zepto.fragment来验证其内容。
+    fragmentRE = /^\s*<(\w+|!)[^>]*>/,
+    // 这个正则匹配 以< 开头之后有任意一个或多个字母、数字、下划线和零个或多个空白字符，之后有 /零个或一个和> 结尾
+    //  检查单标签，例如：<a>
+    singleTagRE = /^<(\w+)\s*\/?>(?:<\/1>|)$/,
+    zepto = {}, // 定义了一个zepto对象，用来存放各种对象方法
+     // 匹配以<开头过滤掉area等一些字符，一个或多个字符不包括零个或多个>,以/>结尾,修复html,
+    tagExpanderRE = /^<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
+    // 匹配 以字母、数字、下划线和中划线的零个或多个字符(id和class的命名规则)
+    simpleSelectorRE = /^[\w-]*$/,
+    // 通过方法调用获得/设置的特殊属性
+    methodAttributes = ['val','css','html','text','data','width','height','offset'],
+    // 创建table标签
+    table = document.createElement('table'),
+    // 创建tr标签
+    tableRow = document.createElement('tr'),
+    containers = {
+        'tr': document.createElement('tbody'),
+        'tbody': table,
+        'thead': table,
+        'tfoot': table,
+        'td': tableRow,
+        'th': tableRow,
+        '*': document.createElement('div')
+    };
 
-        // 通过方法调用获得/设置的特殊属性
-        methodAttributes = ['val','css','html','text','data','width','height','offset'],
-        // 创建table标签
-        table = document.createElement('table'),
-        // 创建tr标签
-        tableRow = document.createElement('tr'),
-        containers = {
-            'tr': document.createElement('tbody'),
-            'tbody': table,
-            'thead': table,
-            'tfoot': table,
-            'td': tableRow,
-            'th': tableRow,
-            '*': document.createElement('div')
-        };
+    // 将dom数组转换为类数组的形式，并设置对应的length属性和selector属性
+    function Z(dom, selector) {
+        var i, len = dom ? dom.length : 0;
+        for (i = 0; i < len; i++) {
+            this[i] = dom[i]
+        }
+        this.length = len
+        this.selector = selector || ''
+    }
+    // 判断数据是否为类数组
+    function likeArray(obj) {
+        // obj必须存在 并且obj有length属性
+        var length = !!obj && 'length' in obj && obj.length;
+        type = $.type(obj);   // 调用type函数，返回obj的数据类型
+        // type不等于function类型 ,并且不为window类型 ,
+        return 'function' != type && !isWindow(obj) && (
+            // 并且type等于array类型或者length等于0 ,或者 length的值为数字类型并且大于0, 并且 length-1 为 obj 的key
+             'array' == type || length === 0 || (typeof length == 'number' && length > 0 && (length - 1) in obj))
+    }
 
-
+    // 定义zepto的初始化函数,传入参数
     zepto.init = function (selector, context) {
-        var dom;
-        if(!selector) return zepto.Z()
+        var dom; // 定义dom 变量
+        if(!selector) return zepto.Z(); //  如果selector不存在，则返回空集合
         else if (typeof selector == 'string') {
-            selector = selector.trim(); // 去除左右空格
-            if(selector[0] == '<' && fragmentRE.test(selector)){
-                dom = zepto.fragment(selector,RegExp.$1,context),
-                selector = null;
-            }else if(context !== undefined) return $(context).find(selector)
-            else dom = zepto.qsa(document, selector)
+            //判断如果等于字符串,去除左右两边空格，两种情况$("<p></p>")和$("#id")
+            selector = selector.trim();
+            if (selector[0] == '<' && fragmentRE.test(selector)){
+                // 确认表达式再创建元素，这里的RegExp.$1为第一个子匹配（表达式中的括号部分）
+                dom = zepto.fragment(selector, RegExp.$1, context),
+                selector = null
+            }else if (context !== undefined) {  // $("#id","li")
+                return $(context).find(selector)
+            }else{
+                dom = zepto.qsa(document, selector)
+            }
+            // 如果是 $(function(){}) 这样的样式就直接调用ready
         }else if (isFunction(selector)) return $(document).ready(selector)
-        // 如果已经为zepto对象了，直接返回
-        else if(zepto.isZ(selector)) return selector
-        else {
+            // 传人的参数本身就是zepto的对象，则直接返回
+        else if(zepto.isZ(selector)) return selector;
+        else{
+            // compact 函数：过滤掉为null的项
+            // 如果selector是一个数组，则过滤掉null项
             if(isArray(selector)) dom = compact(selector)
-            else if (isObject(selector)) {
-                dom = [selector],
-                selector = null
-            }else if( fragmentRE.test(selector)) {
-                dom.zepto.fragment(selector.trim(),RegExp.$1, context),
-                selector = null
-            }else if (context != undefined) return $(context).find(selector)
+            // 如果传入的是object，直接强制塞进一个数组
+            else if (isObject(selector)) dom = [selector], selector = null;
+            else if (fragmentRE.test(selector)){
+                dom = zepto.fragment(selector.trim(),RegExp.$1,context), selector = null;
+            }
+            else if (context !== undefined) return $(context).find(selector)
             else dom = zepto.qsa(document, selector)
         }
-        // 从发现的节点创建一个新的Zepto集合
-        return zepto.Z(dom, selector)
-    }
-    zepto.Z = function (dom, selector) {
-        return new Z(dom, selector)
-    }
-
-    zepto.fragment = function(html, name, properties) {
-        var dom, nodex, container
-        // 对单标签进行特殊的案例优化，例：<a/>
-        if (singleTagRE.test(html)) {
-            dom = $(document.createElement(RegExp.$1))
-        }
+        return zepto.Z(dom, selector);
+    };
+    //取一个HTML字串和一个可选的标签名称
+    // 从给定的HTML字符串生成随机节点。
+    // 生成的随机节点作为数组返回。
+    // 此函数可以在插件中重写
+    //  它与不完全支持dom的浏览器兼容。
+    // 主要对生成的元素进行处理，并对生成的dom进行返回，例如
+    // $("p")或者为他添加属性$("p"，{height:200px}),就会生成一个新的p元素
+    zepto.fragment = function (html, name, properties) {
+        var dom, nodes, container
+        // 单标签匹配, 匹配成功则创建这个单标签
+        if(singleTagRE.test(html)) dom = $(document.createElement(RegExp.$1))
         // 如果没有匹配到单标签
         if (!dom) {
-            // 如果有replace方法说明html 为字符串，把原来的字符串替换成合法的字符串
-            if (html.replace) html = html.replace(tagExpanderRE, '<$1></$2>')
-            // 如果name 严格等于undefined，则将匹配的标签名给name
-            if (name === undefined) name = fragmentRE.test(html) && RegExp.$1
-            // 判断name是否是containers的一个属性，如果不是则将‘*’赋给name
-            if (!(name in containers)) name = '*'
+            // 如果html有replace方法说明是字符串， 把原来的字符串替换成合法的字符串
+            if (html.replace) html = html.replace(tagExpanderRE, '<$1></$2>');
+            // 如果name严格等于undefined 则将匹配的标签名给name
+            if( name === undefined) name = fragmentRE.test(html);
+            // 判断 name是否是containers的一个属性, 如果不是则将*赋给name
+            if(!(name in containers)) name = '*';
             // 创建一个标签（div 或其他标签）
             container = containers[name];
             // 设置标签的html为获取的html
             container.innerHTML = html;
-            // 将container里面的所有元素删除，并返回删除的元素
-            dom = $.each(slice.call(container.childNodes), function () {
+            // 将 container里面的所有元素删除，并返回删除的元素
+            dom = $.each(slice.call(container.childNodes),function () {
                 container.removeChild(this)
             })
         }
         if (isPlainObject(properties)) {
             nodes = $(dom);
             $.each(properties, function (key, value) {
-                if (methodAttributes.indexOf(key) > -1) nodes[key](value)
-                else nodes.attr(key, value)
+                if (methodAttributes.indexOf(key) > -1) {
+                    nodes[key](value)
+                }else {
+                    nodes.attr(key, value)
+                }
             })
         }
         return dom
     }
-    $ = function (selector,contex) {
-        return zepto.init(selector, contex)
+
+    // css选择器，获取dom对象
+    zepto.qsa = function (element, selector) {
+        var found,  // 已经找到的元素
+            maybeID = selector[0] == '#', // 判断第一个字符是否为'#',如果是，可能为id选择器
+            maybeClass = !maybeID && selector[0] == '.', // 如果不是id选择器，并且选择器的第一个字符为‘.’,可能为class选择器
+            nameOnly = maybeID || maybeClass ? selector.slice(1): selector, // 如果为id选择器或class选择器，将第一个字符去掉
+            isSimple = simpleSelectorRE.test(nameOnly);  // 是否为单选择器 ？
+            // 判断是否有geElementById方法并且为单选择器并且为id选择器
+            return (element.getElementById && isSimple && maybeID) ?
+                //  如果查找到元素，则将元素以数组的形式返回，没有则返回空数组
+                ( (found = element.getElementById(nameOnly)) ? [found] : [] ) :
+                // 排除不合法的element，如果element的节点类型不等于元素节点、document和documentFragment的话，直接返回空数组
+                (element.nodeType !==1 && element.nodeType !== 9 && element.nodeType !== 11) ? [] :
+                   // slice.call 处理所获取到的集合，这样，获取到的DOM集合就可以直接使用数组的方法了。
+                slice.call(
+                     // 如果为单选择器并且不是id选择器并且存在getElementsByClassName方法
+                     isSimple && !maybeID && element.getElementsByClassName ?
+                         // 如果为class选择器，则采用getElementsByClassName获取
+                        maybeClass ? element.getElementsByClassName(nameOnly) :
+                         //  否则采用getElementsByTagName获取
+                        element.getElementsByTagName(selector) :
+                         // 以上情况都不是，则用querySelectorAll
+                        element.querySelectorAll(selector)
+                 )
     }
 
-    return $;
-}
+    zepto.Z = function (dom, selector) {
+        return new Z(dom, selector)  // 返回Z函数的实例
+    }
+    zepto.isZ = function (object) {
+        return object instanceof zepto.Z
+    }
+    $ = function (selector, context) {
+        return zepto.init(selector, context); // 返回初始化函数
+    }
 
+    // 用来遍历数组和对象  elements为需要遍历的数组对象， callback 为回调函数
+    $.each = function (elements, callback) {
+        var i, key
+        // 如果elements为数组，for循环调用callback，并将数组索引index和元素值item传给回调函数作为函数
+        //注意回调函数调用了 call 方法，call 的第一个参数为当前元素值或当前属性值，所以回调函数的上下
+        // 文变成了当前元素值或属性值，也就是说回调函数中的 this 指向的是 item 。这在dom集合的遍历中相当有用。
+        if(likeArray(elements)) {
+            for(i = 0; i < elements.length; i++) {
+                // 如果回调函数返回false，立即中断遍历
+                if( callback.call(elements[i],i, elements[i]) === false) return elements
+            }
+        }else {  // 如果为对象
+            for (key in elements) {
+                if (callback.call(elements[key],key,elements[i]) ===false) return elements
+            }
+        }
+        return elements
+    }
+
+
+    return $
+})();
 window.Zepto = Zepto;
-window.$ === undefined && (window.$ = Zepto)
+window.$ === undefined && (window.$ = Zepto);  // 如果window.$===undefined则返回 window.$ = Zepto
+
