@@ -1,34 +1,70 @@
 var Zepto = (function () {
     var $,
-    emptyArray = [],
-    filter = emptyArray.filter,
-    slice = emptyArray.slice,
-    // 开头匹配0或多个空白字符，下个字符是<的之后有一个或多个的字母、数字、下划线或是！，不包含>的任意字符之后是>结尾，
-    // 这个正则只能匹配出创建元素的情况，不足以验证其正确性，之后有zepto.fragment来验证其内容。
-    fragmentRE = /^\s*<(\w+|!)[^>]*>/,
-    // 这个正则匹配 以< 开头之后有任意一个或多个字母、数字、下划线和零个或多个空白字符，之后有 /零个或一个和> 结尾
-    //  检查单标签，例如：<a>
-    singleTagRE = /^<(\w+)\s*\/?>(?:<\/1>|)$/,
-    zepto = {}, // 定义了一个zepto对象，用来存放各种对象方法
-     // 匹配以<开头过滤掉area等一些字符，一个或多个字符不包括零个或多个>,以/>结尾,修复html,
-    tagExpanderRE = /^<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
-    // 匹配 以字母、数字、下划线和中划线的零个或多个字符(id和class的命名规则)
-    simpleSelectorRE = /^[\w-]*$/,
-    // 通过方法调用获得/设置的特殊属性
-    methodAttributes = ['val','css','html','text','data','width','height','offset'],
-    // 创建table标签
-    table = document.createElement('table'),
-    // 创建tr标签
-    tableRow = document.createElement('tr'),
-    containers = {
-        'tr': document.createElement('tbody'),
-        'tbody': table,
-        'thead': table,
-        'tfoot': table,
-        'td': tableRow,
-        'th': tableRow,
-        '*': document.createElement('div')
-    };
+        // 定义空数组，取得数组的filter、slice、concat方法
+        emptyArray = [],
+        filter = emptyArray.filter,
+        slice = emptyArray.slice,
+        concat = emptyArray.concat,
+        // 开头匹配0或多个空白字符，下个字符是<的之后有一个或多个的字母、数字、下划线或是！，不包含>的任意字符之后是>结尾，
+        // 这个正则只能匹配出创建元素的情况，不足以验证其正确性，之后有zepto.fragment来验证其内容。
+        fragmentRE = /^\s*<(\w+|!)[^>]*>/,
+        // 这个正则匹配 以< 开头之后有任意一个或多个字母、数字、下划线和零个或多个空白字符，之后有 /零个或一个和> 结尾
+        //  检查单标签，例如：<a>
+        singleTagRE = /^<(\w+)\s*\/?>(?:<\/1>|)$/,
+        // 匹配以<开头过滤掉area等一些字符，一个或多个字符不包括零个或多个>,以/>结尾,修复html,
+        tagExpanderRE = /^<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
+        // 匹配 以字母、数字、下划线和中划线的零个或多个字符(id和class的命名规则)
+        simpleSelectorRE = /^[\w-]*$/,
+        zepto = {}, // 定义了一个zepto对象，用来存放各种对象方法
+        uniq, // 数组去重
+        class2type = {},
+        toString = class2type.toString,
+        //返回是否是数组类型的,如果浏览器支持数组的 isArray 原生方法，就采用原生的，否则检测数据是否为Array的实例
+        isArray = Array.isArray || function (object) {
+                return object instanceof Array
+            }
+        // 通过方法调用获得/设置的特殊属性
+        methodAttributes = ['val','css','html','text','data','width','height','offset'],
+        // 创建table标签
+        table = document.createElement('table'),
+        // 创建tr标签
+        tableRow = document.createElement('tr'),
+        containers = {
+            'tr': document.createElement('tbody'),
+            'tbody': table,
+            'thead': table,
+            'tfoot': table,
+            'td': tableRow,
+            'th': tableRow,
+            '*': document.createElement('div')
+        };
+
+    // 数组方法
+    // 删除数组中的undefined和null
+    function compact(array) {
+        return filter.call(array,function (item) {
+            return item != null
+        })
+    }
+    // 数组去重 , 检测item在数组中首次出现的位置与当前的位置是否相等，不相等则证明不是第一次出现，将其过滤掉
+    uniq = function (array) {
+        return filter.call(array,function (item, idx) {
+            return array.indexOf(item) == idx
+        })
+    }
+
+    // 检测是否是函数
+    function isFunction (value) {
+        return type(value) == 'function'
+    }
+    // 检测数据类型
+    function type(obj) {
+        // 如果obj等于null 或 undefined ，返回字符串类型的null 或 undefined,
+        return obj == null ? String(obj) : class2type[toString.call(obj)] || 'object'
+    }
+
+
+
 
     // 将dom数组转换为类数组的形式，并设置对应的length属性和selector属性
     function Z(dom, selector) {
@@ -46,8 +82,8 @@ var Zepto = (function () {
         type = $.type(obj);   // 调用type函数，返回obj的数据类型
         // type不等于function类型 ,并且不为window类型 ,
         return 'function' != type && !isWindow(obj) && (
-            // 并且type等于array类型或者length等于0 ,或者 length的值为数字类型并且大于0, 并且 length-1 为 obj 的key
-             'array' == type || length === 0 || (typeof length == 'number' && length > 0 && (length - 1) in obj))
+                // 并且type等于array类型或者length等于0 ,或者 length的值为数字类型并且大于0, 并且 length-1 为 obj 的key
+            'array' == type || length === 0 || (typeof length == 'number' && length > 0 && (length - 1) in obj))
     }
 
     // 定义zepto的初始化函数,传入参数
@@ -60,7 +96,7 @@ var Zepto = (function () {
             if (selector[0] == '<' && fragmentRE.test(selector)){
                 // 确认表达式再创建元素，这里的RegExp.$1为第一个子匹配（表达式中的括号部分）
                 dom = zepto.fragment(selector, RegExp.$1, context),
-                selector = null
+                    selector = null
             }else if (context !== undefined) {  // $("#id","li")
                 return $(context).find(selector)
             }else{
@@ -68,7 +104,7 @@ var Zepto = (function () {
             }
             // 如果是 $(function(){}) 这样的样式就直接调用ready
         }else if (isFunction(selector)) return $(document).ready(selector)
-            // 传人的参数本身就是zepto的对象，则直接返回
+        // 传人的参数本身就是zepto的对象，则直接返回
         else if(zepto.isZ(selector)) return selector;
         else{
             // compact 函数：过滤掉为null的项
@@ -132,34 +168,47 @@ var Zepto = (function () {
             maybeClass = !maybeID && selector[0] == '.', // 如果不是id选择器，并且选择器的第一个字符为‘.’,可能为class选择器
             nameOnly = maybeID || maybeClass ? selector.slice(1): selector, // 如果为id选择器或class选择器，将第一个字符去掉
             isSimple = simpleSelectorRE.test(nameOnly);  // 是否为单选择器 ？
-            // 判断是否有geElementById方法并且为单选择器并且为id选择器
-            return (element.getElementById && isSimple && maybeID) ?
-                //  如果查找到元素，则将元素以数组的形式返回，没有则返回空数组
-                ( (found = element.getElementById(nameOnly)) ? [found] : [] ) :
-                // 排除不合法的element，如果element的节点类型不等于元素节点、document和documentFragment的话，直接返回空数组
-                (element.nodeType !==1 && element.nodeType !== 9 && element.nodeType !== 11) ? [] :
-                   // slice.call 处理所获取到的集合，这样，获取到的DOM集合就可以直接使用数组的方法了。
+        // 判断是否有geElementById方法并且为单选择器并且为id选择器
+        return (element.getElementById && isSimple && maybeID) ?
+            //  如果查找到元素，则将元素以数组的形式返回，没有则返回空数组
+            ( (found = element.getElementById(nameOnly)) ? [found] : [] ) :
+            // 排除不合法的element，如果element的节点类型不等于元素节点、document和documentFragment的话，直接返回空数组
+            (element.nodeType !==1 && element.nodeType !== 9 && element.nodeType !== 11) ? [] :
+                // slice.call 处理所获取到的集合，这样，获取到的DOM集合就可以直接使用数组的方法了。
                 slice.call(
-                     // 如果为单选择器并且不是id选择器并且存在getElementsByClassName方法
-                     isSimple && !maybeID && element.getElementsByClassName ?
-                         // 如果为class选择器，则采用getElementsByClassName获取
+                    // 如果为单选择器并且不是id选择器并且存在getElementsByClassName方法
+                    isSimple && !maybeID && element.getElementsByClassName ?
+                        // 如果为class选择器，则采用getElementsByClassName获取
                         maybeClass ? element.getElementsByClassName(nameOnly) :
-                         //  否则采用getElementsByTagName获取
-                        element.getElementsByTagName(selector) :
-                         // 以上情况都不是，则用querySelectorAll
+                            //  否则采用getElementsByTagName获取
+                            element.getElementsByTagName(selector) :
+                        // 以上情况都不是，则用querySelectorAll
                         element.querySelectorAll(selector)
-                 )
+                )
     }
 
     zepto.Z = function (dom, selector) {
         return new Z(dom, selector)  // 返回Z函数的实例
     }
+    //  判断一个对象是否为zepto对象
     zepto.isZ = function (object) {
         return object instanceof zepto.Z
     }
     $ = function (selector, context) {
         return zepto.init(selector, context); // 返回初始化函数
     }
+    //
+    $.fn = {
+        constructor: zepto.Z,
+        length: 0,
+        filter: function (selector) {
+            if(isFunction(selector)) return this.not(selector)
+            return $(filter.call(this, function (element) {
+                return zepto.matches(element, selector)
+            }))
+        }
+    }
+
 
     // 用来遍历数组和对象  elements为需要遍历的数组对象， callback 为回调函数
     $.each = function (elements, callback) {
