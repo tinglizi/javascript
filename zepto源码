@@ -17,6 +17,7 @@ var Zepto = (function () {
         simpleSelectorRE = /^[\w-]*$/,
         zepto = {}, // 定义了一个zepto对象，用来存放各种对象方法
         uniq, // 数组去重
+        camelize, // 转换为驼峰命名
         class2type = {},
         toString = class2type.toString,
         //返回是否是数组类型的,如果浏览器支持数组的 isArray 原生方法，就采用原生的，否则检测数据是否为Array的实例
@@ -52,10 +53,50 @@ var Zepto = (function () {
             return array.indexOf(item) == idx
         })
     }
-
+    // 数组扁平化
+    function flatten (array) {
+        return array.length > 0 ? $.fn.concat.apply([],array) : array
+    }
+    //
+    $.each('Boolean Number String Function Array Date RegExp Object Error'.split(' '), function (i, name) {
+        class2type["[object " + name + "]"] = name.toLowerCase()
+    })
+    // 字符串方法
+    // 将驼峰式的写法转换成连字符 - 的写法。
+    function dasherize (str) {
+        return str.replace(/::/g, '/')  // 将所有的::,替换成/
+                .replace(/[A-Z]+([A-Z][a-z])/g, '$1_$2')  // 出现一次或多次大写字母和出现一次大写字母和连续一次或多次小写字母之间加入_
+                .replace(/([a-z\d])([A-Z])/g, '$1_$2')   // 出现一次小写字母或数字和出现一次大写字母之间加上_
+                .replace(/_/g, '-')    // 将所有的_替换成 -
+                .toLowerCase()    // 将所有的大写字母替换成小写
+    }
+    // 转化为驼峰命名  例如：hello-word 转换为 helloWord
+    camelize = function (str) {
+        // 匹配一个或多个-，后面跟任意字符零次或一次，匹配成功则将这个字符转换为大写返回
+       return str.replace(/-+(.)?/,function (match, chr) {
+           return chr ? chr.toUpperCase() : ''
+       })
+    }
+    
     // 检测是否是函数
     function isFunction (value) {
         return type(value) == 'function'
+    }
+
+    //  检查是否是对象
+    function isObject(obj) {
+        return type(obj) == 'object'
+    }
+    // 检查是否为浏览器的window对象
+    function isWindow(obj) {
+        // obj不等于undefined和null，并且window为自身的引用
+        return obj != null && obj == obj.window
+    }
+
+    //  检查是否为document对象
+    function isDocument (obj) {
+        // obj不等于undefined和null，并且obj的节点类型等于DOCUMENT_NODE
+        return obj != null && obj.nodeType == obj.DOCUMENT_NODE
     }
     // 检测数据类型
     function type(obj) {
