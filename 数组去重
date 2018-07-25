@@ -1,5 +1,5 @@
 ## 数组去重
-
+// 1.
 function distinct (arr) {
   let result = [];
   for (var i = 0; i < arr.length; i++){
@@ -8,4 +8,21 @@ function distinct (arr) {
     }
   }
   return result;
+}
+//2. 遍历数组，如果数组中的第i项 与当前的索引值相同，则添加到新数组中，
+function unique (arr) {
+  let results = [];
+  for (var i in arr) {
+    if (arr.indexOf(arr[i]) == i) {
+      results.push(arr[i])
+    }
+  }
+  return results
+}
+
+//3. 利用filter方法
+function uniq (arr) {
+  return Array.prototype.filter.call(arr, function (item, idx) {
+    return arr.indexOf(item) == i
+  })
 }
