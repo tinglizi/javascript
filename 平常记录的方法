@@ -1,0 +1,2 @@
+## 查看变量的数据类型
+  例： var num = 123;  toString.call(num) => [object Number]
