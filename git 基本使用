@@ -1,0 +1,10 @@
+# git的基本使用
+>
+># 第一次使用：
+> 如果没有ssh key, 则需要通过 # ssh-keygen -t rsa -C “6215048wjl@163.com #来生成。
+
+> 1. git init   // 将文件夹初始化成git可管理的仓库 
+> 2. git add .  // 将所有文件添加到仓库
+> 3. git commit -m '提交注释文本'   // 将所有文件提交到仓库
+> 4. git remote add origin git@github.com:wangjiax9/practice.git   //关联远程仓库
+> 5. git push -u origin master  //把本地库的所有内容推送到远程库上
