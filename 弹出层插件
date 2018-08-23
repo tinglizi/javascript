@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>弹出层</title>
+    <style>
+      .btn{
+          width: 80px;
+          height: 45px;
+          line-height: 45px;
+          background: #5890AD;
+          color: #fff;
+          text-align: center;
+          margin: 20px auto;
+          cursor: pointer;
+      }
+      .showContent h2{
+          color: #8A6343;
+          font-weight: normal;
+          text-align: center;
+      }
+    </style>
+</head>
+<body>
+    <div class="btn">弹出层</div>
+
+    <script>
+       /*
+       *    1. 需要传入的参数 ： 目标元素， 弹出框显示的内容(内容为显示的html)
+       *
+       * */
+       (function (window, document) {
+            // 弹出层的构造函数
+           var Dialog = function (targetEle, context) {
+               this.targetEle = document.getElementsByClassName(targetEle)[0]; // 获取目标元素
+               this.context = context || 'hello';
+               // 创建遮罩层和内容层
+               this.shadeDiv = document.createElement("div");
+               this.contentDiv = document.createElement("div");
+               this.init();
+           }
+           Dialog.prototype = {
+               constructor: Dialog,
+               // 初始化
+               init: function () {
+                   //设置其样式、className，将其添加到body中
+                   var shadeStyle = {"display": "none", "width": "100%", "height": "100%", "position": "fixed", "left": "0", "top": "0","background": "rgba(0,0,0,.45)","zIndex": "998"}
+                   this.setStyle(this.shadeDiv, shadeStyle);
+                   this.shadeDiv.className="shade";
+
+                   this.contentDiv.innerHTML = this.context;
+                   var shadeStyle = {"display": "none", "width": "80%", "height": "600px", "position": "fixed", "left": "50%", "top": "50%","transform": "translate(-50%, -50%)","background": "#fff","zIndex": "999"}
+                   this.setStyle(this.contentDiv, shadeStyle);
+                   this.contentDiv.className = "contentDiv";
+               },
+               // 显示弹出层
+               show: function () {
+                   var _this = this;
+                   _this.targetEle.addEventListener('click', function () {
+                       _this.setStyle(_this.shadeDiv, {"display": "block"});
+                       _this.setStyle(_this.contentDiv, {"display": "block"});
+                   })
+                   this.hide();
+               },
+               // 隐藏弹出层
+               hide: function () {
+                   var _this = this;
+                   _this.shadeDiv.addEventListener('click', function () {
+                       _this.setStyle(_this.shadeDiv, {"display": "none"});
+                       _this.setStyle(_this.contentDiv, {"display": "none"});
+                   })
+               },
+               // 设置样式
+               setStyle: function (ele, styles) {
+                   for (var i in styles) {
+                       ele.style[i] = styles[i];
+                   }
+                   document.body.appendChild(ele);
+               }
+           }
+
+           var dialog = function (ele, content) {
+               return new Dialog(ele, content)
+           }
+
+           window.dialog = dialog;
+       })(window, document)
+
+        var dialogContent = '<div class="showContent">'+
+                              ' <h2>这是一个弹出层</h2>'+
+                               '</div>';
+
+        dialog("btn", dialogContent).show();
+    </script>
+</body>
+</html>
